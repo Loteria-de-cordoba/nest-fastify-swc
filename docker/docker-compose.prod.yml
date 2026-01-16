@@ -1,17 +1,15 @@
-
 services:
   backend:
     build:
       context: ..
       dockerfile: Dockerfile
+      target: prod
     container_name: <project-name>
     env_file:
       - .env
     ports:
       - "3000:3000"
-    volumes:
-      - ../src:/app/src
-    command: npm run start:dev
+    restart: unless-stopped
     networks:
       - docker_network
 

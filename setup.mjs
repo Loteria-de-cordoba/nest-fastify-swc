@@ -78,7 +78,8 @@ DB_PASS=${dbPass}
   const filesToUpdate = [
     "package.json",
     "package-lock.json",
-    "docker/docker-compose.yml",
+    "docker/docker-compose.dev.yml",
+    "docker/docker-compose.prod.yml",
     "src/health/health.controller.ts",
   ];
 
@@ -87,8 +88,8 @@ DB_PASS=${dbPass}
       const data = fs.readFileSync(file, "utf8");
       let updated = data.replace(/<project-name>/g, projectName);
 
-      // Extra: actualizar container_name e image en docker-compose.yml
-      if (file.includes("docker-compose.yml")) {
+      // Extra: actualizar container_name e image en docker-compose
+      if (file.includes("docker-compose")) {
         updated = updated
           .replace(/container_name:\s?.*/g, `container_name: ${projectName}`)
           .replace(/image:\s?.*/g, `image: ${projectName}:latest`);
