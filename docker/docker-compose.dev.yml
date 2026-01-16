@@ -15,6 +15,6 @@ services:
     command: npm run start:dev
     networks:
       - docker_network
-
+    restart: unless-stopped
 networks:
   docker_network:

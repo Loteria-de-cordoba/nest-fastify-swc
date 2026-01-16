@@ -12,6 +12,5 @@ services:
     restart: unless-stopped
     networks:
       - docker_network
-
 networks:
   docker_network:
