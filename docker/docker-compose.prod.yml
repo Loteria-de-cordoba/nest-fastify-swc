@@ -4,13 +4,10 @@ services:
       context: ..
       dockerfile: Dockerfile
       target: prod
-    container_name: <project-name>
     env_file:
       - .env
+    environment:
+      NODE_ENV: production
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     restart: unless-stopped
-    networks:
-      - docker_network
-networks:
-  docker_network:
