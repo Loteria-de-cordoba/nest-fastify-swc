@@ -9,11 +9,9 @@ export class HealthController {
 
   @Get('health')
   health() {
-    const name = '<project-name>';
-    const res = {
-      "status": "ok",
-      "name": name
-    }
-    return res;
+    return {
+      status: 'ok',
+      name: this.cfg.get('APP_NAME', 'nest-template'),
+    };
   }
 }

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { join, resolve } from 'path';
+import { resolve } from 'path';
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -9,20 +9,44 @@ import { HealthModule } from './health/health.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
-        resolve(__dirname, '..', '..', 'docker', '.env'),
         resolve(process.cwd(), 'docker', '.env'),
         resolve(process.cwd(), '.env'),
       ],
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      username: process.env.DB_USER || 'admin',
-      password: process.env.DB_PASS || 'admin123',
-      database: process.env.DB_NAME || 'postgres',
-      autoLoadEntities: true,
-      synchronize: false, // true ⚠️ solo en desarrollo
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const isProduction = config.get('NODE_ENV') === 'production';
+        const sslEnabled = config.get('DB_SSL', isProduction ? 'true' : 'false') === 'true';
+        if (isProduction && !sslEnabled) {
+          throw new Error('DB_SSL=true is required in production');
+        }
+
+        const caBase64 = config.get<string>('DB_SSL_CA_BASE64');
+        const ssl = sslEnabled
+          ? {
+              rejectUnauthorized: true,
+              ...(caBase64 ? { ca: Buffer.from(caBase64, 'base64') } : {}),
+            }
+          : false;
+
+        const port = Number(config.get('DB_PORT', '5432'));
+        if (!Number.isInteger(port) || port < 1 || port > 65535) {
+          throw new Error('DB_PORT must be an integer between 1 and 65535');
+        }
+
+        return {
+          type: 'postgres' as const,
+          host: config.getOrThrow<string>('DB_HOST'),
+          port,
+          username: config.getOrThrow<string>('DB_USER'),
+          password: config.getOrThrow<string>('DB_PASS'),
+          database: config.getOrThrow<string>('DB_NAME'),
+          ssl,
+          autoLoadEntities: true,
+          synchronize: false,
+        };
+      },
     }),
     HealthModule,
   ],

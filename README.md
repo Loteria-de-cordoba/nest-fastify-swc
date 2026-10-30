@@ -1,201 +1,95 @@
-# 🧱 NestJS + Fastify + SWC Template
+# Template NestJS + Fastify + SWC
 
-Template base para crear APIs **rápidas, modernas y eficientes** con [NestJS](https://nestjs.com/), [Fastify](https://fastify.io/) y [SWC](https://swc.rs/).
-Pensado como punto de partida para proyectos backend escalables dentro de cualquier entorno profesional.
+Base para APIs con NestJS, Fastify, SWC, PostgreSQL y Docker Compose.
 
----
+## Requisitos
 
-## 🚀 Características principales
+- Node.js `26.13.0` (versión fijada en `.nvmrc` y en la imagen Docker).
+- npm `12` o superior.
+- Docker Compose v2 para el entorno completo de desarrollo.
 
-✅ **NestJS + Fastify** — servidor HTTP de alto rendimiento, más rápido que Express.
-
-✅ **Compilador SWC** — compilación hasta 20x más rápida que `tsc`.
-
-✅ **TypeScript** — tipado fuerte y estructura modular.
-
-✅ **Script de setup automatizado** — inicializa el proyecto con nombre y variables personalizadas.
-
-✅ **Entorno Docker listo** — configuración base para levantar el backend con PostgreSQL.
-
-✅ **Health check API** — endpoint básico `/health` para monitoreo.
-
-✅ **Soporte de configuración global (.env)** — manejo de entornos flexible y centralizado.
-
----
-
-## 🧩 Tecnologías principales
-
-| Tecnología              | Uso                                      |
-| ------------------------ | ---------------------------------------- |
-| **NestJS**         | Framework backend modular                |
-| **Fastify**        | Servidor HTTP de alto rendimiento        |
-| **SWC**            | Compilador ultrarrápido para TypeScript |
-| **TypeORM**        | ORM para PostgreSQL                      |
-| **Docker Compose** | Entorno local y despliegue rápido       |
-| **Node.js 22+**    | Entorno de ejecución recomendado        |
-
----
-
-## 📁 Estructura del proyecto
-
-```
-.
-├── docker/
-│   ├── .env              # Variables de entorno (se genera con setup.js)
-│   ├── .env.example      # Variables de entorno por defecto
-│   └── docker-compose.yml
-├── src/
-│   ├── health/           # Módulo de health check
-│   │   ├── health.controller.ts
-│   │   └── health.module.ts
-│   └── app.module.ts     # Configuración principal (ConfigModule + TypeORM)
-├── setup.js              # Script automático de inicialización del template
-├── package.json
-├── nest-cli.json
-├── tsconfig.json
-└── README.md
-```
-
----
-
-## ⚙️ Uso del template
-
-### 1️⃣ Crear un nuevo repositorio desde GitHub
-
-1. Abrí este repositorio en GitHub.
-2. Hacé clic en **Use this template → Create a new repository**.
-3. Elegí el nombre y visibilidad del nuevo repo.
-4. Clonalo localmente:
-   ```bash
-   git clone https://github.com/tu-org/nuevo-proyecto.git
-   cd nuevo-proyecto
-   ```
-
----
-
-### 2️⃣ Inicializar el proyecto
-
-Ejecutá el script de setup:
+## Inicializar el template
 
 ```bash
 npm run setup
 ```
 
-El asistente te pedirá:
+El asistente normaliza el nombre del proyecto, actualiza `package.json` y `package-lock.json`, y crea `docker/.env` con permisos privados y una contraseña aleatoria para desarrollo. El archivo se ignora en Git y en el contexto de Docker.
 
-- Nombre del nuevo proyecto.
-- Si querés configurar conexión a base de datos personalizada.
-- (Opcional) Datos de host, puerto, usuario, base y contraseña.
-
-El script:
-
-- Generará el archivo `docker/.env` (desde `.env.example` o valores custom).
-- Actualizará el nombre del proyecto en los archivos relevantes:
-  - `package.json`
-  - `package-lock.json`
-  - `docker/docker-compose.yml` (container_name e image)
-  - `src/health/health.controller.ts`
-
----
-
-### 3️⃣ Levantar el entorno
-
-#### 🐳 Opción 1 — con Docker (recomendada)
+## Desarrollo con Docker
 
 ```bash
-docker compose up --build
+docker compose --env-file docker/.env -f docker/docker-compose.dev.yml up --build
 ```
 
-Esto levantará el contenedor del backend y, si lo configurás, también PostgreSQL.
-
-#### 💻 Opción 2 — localmente sin Docker
-
-Instalá dependencias y ejecutá:
+Compose levanta el backend y PostgreSQL. La base de datos queda disponible dentro de la red de Compose y no publica su puerto al host. Para detener los servicios:
 
 ```bash
-npm install
+docker compose --env-file docker/.env -f docker/docker-compose.dev.yml down
+```
+
+Para eliminar también los datos persistidos de PostgreSQL:
+
+```bash
+docker compose --env-file docker/.env -f docker/docker-compose.dev.yml down --volumes
+```
+
+## Desarrollo local
+
+Se necesita PostgreSQL en `localhost:5432` o los valores configurados en `docker/.env`.
+
+```bash
+npm ci
 npm run start:dev
 ```
 
----
+## Configuración
 
-## 🌱 Variables de entorno
+`docker/.env.example` contiene valores de desarrollo. `npm run setup` genera `docker/.env`; no uses esa contraseña local en producción.
 
-El proyecto usa **ConfigModule** global para cargar variables desde los siguientes paths (en orden de prioridad):
+| Variable | Uso |
+| --- | --- |
+| `APP_NAME` | Nombre devuelto por el health check y mostrado en Swagger. |
+| `PORT` | Puerto HTTP del backend; por defecto `3000`. |
+| `CORS_ORIGINS` | Orígenes permitidos separados por comas. Sin valores, CORS queda deshabilitado. |
+| `DB_HOST` | Host PostgreSQL. En Compose de desarrollo se reemplaza por `postgres`. |
+| `DB_PORT` | Puerto PostgreSQL; por defecto `5432`. |
+| `DB_USER` | Usuario PostgreSQL, obligatorio. |
+| `DB_NAME` | Base PostgreSQL, obligatoria. |
+| `DB_PASS` | Contraseña PostgreSQL, obligatoria. |
+| `DB_SSL` | En producción debe ser `true`; en desarrollo local se desactiva. |
+| `DB_SSL_CA_BASE64` | CA privada codificada en base64 si la base usa un certificado no incluido en Node. |
+| `SWAGGER_ENABLED` | Permite Swagger en producción solo cuando vale `true`. |
 
-1. `./docker/.env`
-2. `./.env`
+En producción, configura `docker/.env` mediante el mecanismo de secretos del entorno y apunta `DB_HOST` a una base administrada o externa. No incluyas credenciales en la imagen ni en Git. La base no se crea desde el Compose de producción.
 
-Ejemplo de configuración por defecto:
+## Rutas
 
-```bash
-# variables
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=admin
-DB_NAME=postgres
-DB_PASS=admin123
-```
+- `GET /api/health`: responde el estado básico del servicio y `APP_NAME`.
+- `/docs`: interfaz Swagger en desarrollo. En producción se deshabilita salvo que `SWAGGER_ENABLED=true`.
+- El template no incluye autenticación ni guards; agrega y configura autorización antes de exponer rutas privadas.
 
----
+## Scripts
 
-## 🩺 Health check básico
+| Comando | Uso |
+| --- | --- |
+| `npm run setup` | Inicializa el nombre y el entorno local. |
+| `npm run start:dev` | Inicia NestJS en modo watch. |
+| `npm run build` | Compila con NestJS y SWC, con verificación de tipos. |
+| `npm run type-check` | Verifica tipos con TypeScript. |
+| `npm run lint` | Ejecuta ESLint sin modificar archivos. |
+| `npm run lint:fix` | Aplica las correcciones automáticas de ESLint. |
+| `npm run security:audit` | Revisa vulnerabilidades en todas las dependencias. |
+| `npm run security:audit:prod` | Revisa vulnerabilidades en dependencias de producción. |
+| `npm test` | Ejecuta Jest. |
 
-Ruta:
+## Decisiones de seguridad del template
 
-```
-GET /health
-```
-
-Devuelve información básica de estado y nombre del proyecto.
-Ideal para monitoreo, load balancers o verificación de despliegue.
-
-Ejemplo de respuesta:
-
-```json
-{
-  "status": "ok",
-  "name": "my-nest-project",
-}
-```
-
----
-
-## 🧰 Scripts disponibles
-
-| Script                 | Descripción                                     |
-| ---------------------- | ------------------------------------------------ |
-| `npm run setup`      | Ejecuta el asistente de configuración inicial   |
-| `npm run start`      | Inicia la aplicación en modo producción        |
-| `npm run start:dev`  | Inicia la aplicación en modo desarrollo (watch) |
-| `npm run build`      | Compila usando SWC con type-check                |
-| `npm run type-check` | Verifica tipos usando `tsc --noEmit`           |
-
----
-
-## 🛠️ Recomendaciones de desarrollo
-
-- Usa **Node.js 22+** y **npm 10+**.
-- Mantén tu `.env.example` actualizado para futuros clones del template.
-- Si agregás nuevos módulos o configuraciones base, hacé commit en `main` — el template se actualiza automáticamente.
-- Para proyectos derivados, recordá que **los cambios del template no se aplican automáticamente**; deberás mergearlos manualmente si querés traer mejoras.
-
----
-
-## 🧩 Próximos pasos sugeridos
-
-- Añadir un módulo `Logger` centralizado.
-- Configurar `Prettier` y `ESLint` con reglas comunes de equipo.
-- Crear una acción de GitHub CI para `build + lint + test`.
-- Crear script de testing e2e automático basado en documentación Swagger
-
----
-
-## 🧱 Licencia
-
-Este template es de uso interno para proyectos de **Loteria de Córdoba**, pero puede adaptarse libremente en otros contextos.
-Licencia recomendada: [MIT](https://opensource.org/licenses/MIT).
-
----
-
-_Hecho por Octavio Garcia - [Github](https://github.com/OctavioGarcia1337 "Github Profile")_
+- CORS acepta solo los orígenes listados en `CORS_ORIGINS`.
+- Fastify omite las líneas automáticas de acceso exitoso de `/api/health`; conserva el registro de errores y el de las demás rutas.
+- TypeORM requiere credenciales explícitas y mantiene `synchronize: false`.
+- Producción requiere TLS verificado para PostgreSQL (`DB_SSL=true`); se puede configurar una CA privada mediante `DB_SSL_CA_BASE64`.
+- Swagger queda apagado por defecto en producción.
+- La imagen de producción ejecuta Node como usuario sin privilegios.
+- `.dockerignore` excluye `.env`, dependencias, builds y metadatos Git del contexto.
+- `npm audit` y las actualizaciones de Docker/Node deben mantenerse al día.
