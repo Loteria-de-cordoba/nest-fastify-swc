@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:26.13.0-alpine AS base
+FROM node:26.13.1-alpine AS base
 
 FROM base AS npm-base
 RUN npm install --global --ignore-scripts npm@12.2.1
